@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koreait.cloneinstagram.dm.DmMapper">
+
+    <resultMap id="DmDomainRM" type="DmDomain">
+        <id property="idm" column="idm"/>
+        <association property="opponent" column="{idm=idm,fromiuser=fromiuser}" select="selDmOpponent"/>
+    </resultMap>
+
+    <insert id="insDm" useGeneratedKeys="true" keyProperty="idm">
+        INSERT INTO t_dm (lastmsg)
+        VALUES ('')
+    </insert>
+
+    <select id="selDmList" resultMap="DmDomainRM">
+        SELECT A.idm, A.regdt, A.lastmsg, A.lastdt, B.iuser as fromiuser
+          FROM t_dm A
+         INNER JOIN t_dm_user B
+            ON A.idm = B.idm
+           AND B.iuser = ${fromiuser}
+         ORDER BY A.idm DESC
+    </select>
+
+    <select id="selDmOpponent" resultType="UserEntity">
+        SELECT B.iuser, B.nm, B.mainimg
+          FROM t_dm_user A
+         INNER JOIN t_user B
+            ON A.iuser = B.iuser
+         WHERE A.idm = ${idm}
+           AND A.iuser != ${fromiuser}
+    </select>
+
+    <update id="updDmLastMsg">
+        UPDATE t_dm
+        SET lastmsg = #{msg}
+        , lastdt = current_timestamp()
+        WHERE idm = ${idm}
+    </update>
+
+    <!-- //////////////////////////////////////     user    //////// -->
+    <insert id="insDmUser">
+        INSERT INTO t_dm_user
+        ( idm, iuser )
+        VALUES
+        ( ${idm}, ${iuser} )
+    </insert>
+
+
+    <!-- //////////////////////////////////////     msg    //////// -->
+    <insert id="insDmMsg">
+        INSERT INTO t_dm_msg
+        ( idm, seq, iuser, msg )
+        SELECT ${idm}, (IFNULL(MAX(seq), 0) + 1), ${iuser}, #{msg}
+          FROM t_dm_msg
+         WHERE idm = ${idm}
+    </insert>
+
+    <select id="selDmMsgList" resultType="DmMsgDomain">
+        SELECT A.idm, A.seq, A.iuser, A.msg, A.regdt
+             , B.nm as writer
+          FROM t_dm_msg A
+         INNER JOIN t_user B
+            ON A.iuser = B.iuser
+         WHERE A.idm = ${idm}
+         ORDER BY A.seq DESC
+         LIMIT ${startIdx}, ${limit}
+    </select>
+
+</mapper>

@@ -1,0 +1,29 @@
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="layout/basic_layout">
+
+<head></head>
+
+<th:block layout:fragment="content">
+    <h1>로그인</h1>
+
+    <form th:action="@{signin}" method="post" th:object="${userEntity}">
+        <div><input type="email" th:field="*{email}" placeholder="email" autofocus required></div>
+        <div><input type="password" th:field="*{pw}" placeholder="password" required></div>
+        <div>
+            <input type="submit" value="로그인">
+        </div>
+    </form>
+    <div>
+        <a th:href="@{signup}">회원가입</a>
+    </div>
+    <div>
+        <a th:href="@{/oauth2/authorization/naver}">네이버</a>
+        <a th:href="@{/oauth2/authorization/kakao}">카카오</a>
+        <a th:href="@{/oauth2/authorization/google}">구글</a>
+        <a th:href="@{/oauth2/authorization/facebook}">페이스북</a>
+    </div>
+</th:block>
+
+</html>

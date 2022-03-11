@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koreait.cloneinstagram.user.UserMapper">
+    <insert id="insUser">
+        INSERT INTO t_user
+        ( email, provider, pw, nm )
+        VALUES
+        ( #{email}, #{provider}, #{pw}, #{nm} )
+    </insert>
+
+    <select id="findByEmail" resultType="UserEntity">
+        SELECT * FROM t_user
+        WHERE email = #{email}
+        AND provider = #{provider}
+    </select>
+
+    <select id="selUserProfile" resultType="UserDomain">
+        SELECT
+            A.iuser, A.email, A.nm, A.mainimg, A.regdt
+             , (SELECT COUNT(ifeed) FROM t_feed WHERE iuser = ${toiuser}) AS cntFeed
+             , (SELECT COUNT(toiuser) FROM t_user_follow WHERE toiuser = ${toiuser}) AS cntFollower
+             , (SELECT COUNT(fromiuser) FROM t_user_follow WHERE fromiuser = ${toiuser}) AS cntFollow
+             , (SELECT COUNT(fromiuser) FROM t_user_follow WHERE fromiuser = ${toiuser} AND toiuser = ${fromiuser}) AS isYouFollowMe
+             , (SELECT COUNT(fromiuser) FROM t_user_follow WHERE fromiuser = ${fromiuser} AND toiuser = ${toiuser}) AS isMeFollowYou
+        FROM t_user A
+        WHERE A.iuser = ${toiuser}
+    </select>
+
+    <update id="updUser">
+        UPDATE t_user
+        <set>
+            <if test="mainimg != null and mainimg != '' ">
+                mainimg = #{mainimg}
+            </if>
+        </set>
+        WHERE iuser = #{iuser}
+    </update>
+
+    <!-- ////////////////////////////     user img     ///////////////////////-->
+    <insert id="insUserImg">
+        INSERT INTO t_user_img
+            ( iuser, img )
+        VALUES
+            ( #{iuser}, #{img} )
+    </insert>
+
+    <select id="selUserImgList" resultType="UserImgEntity">
+        SELECT img
+        FROM t_user_img
+        WHERE iuser = ${iuser}
+        ORDER BY regdt
+    </select>
+
+    <!-- ////////////////////////////     follow     ///////////////////////-->
+    <insert id="insUserFollow">
+        INSERT INTO t_user_follow
+        ( fromiuser, toiuser )
+        VALUES
+        ( ${fromiuser}, ${toiuser} )
+    </insert>
+
+    <select id="selUserFollow" resultType="UserFollowEntity">
+        SELECT fromiuser, toiuser, regdt
+          FROM t_user_follow
+         WHERE fromiuser = ${fromiuser}
+           AND toiuser = ${toiuser}
+    </select>
+
+    <select id="selUserFollowList" resultType="UserDomain">
+        SELECT B.iuser, B.nm, B.mainimg
+             , CASE WHEN C.fromiuser IS NULL THEN 0 ELSE 1 END AS isMeFollowYou
+          FROM t_user_follow A
+         INNER JOIN t_user B
+            ON A.toiuser = B.iuser
+          LEFT JOIN t_user_follow C
+            ON C.fromiuser = ${fromiuser} -- 로그인한 사람 pk
+           AND C.toiuser = A.toiuser
+         WHERE A.fromiuser = ${toiuser} -- 프로필 주인장  pk
+    </select>
+
+    <select id="selUserFollowerList" resultType="UserDomain">
+        SELECT B.iuser, B.nm, B.mainimg
+             , CASE WHEN C.fromiuser IS NULL THEN 0 ELSE 1 END AS isMeFollowYou
+          FROM t_user_follow A
+         INNER JOIN t_user B
+            ON A.fromiuser = B.iuser
+          LEFT JOIN t_user_follow C
+            ON C.fromiuser = ${fromiuser} -- 로그인한 사람 pk
+           AND C.toiuser = A.fromiuser
+         WHERE A.toiuser = ${toiuser} -- 프로필 주인장  pk
+    </select>
+
+    <delete id="delUserFollow">
+        DELETE FROM t_user_follow
+         WHERE fromiuser = ${fromiuser}
+           AND toiuser = ${toiuser}
+    </delete>
+
+    <!-- ////////////////////////////     my feed      ///////////////////////-->
+    <select id="selMyFeedList" resultType="FeedDomain">
+
+    </select>
+</mapper>

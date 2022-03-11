@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.koreait.cloneinstagram.feed.FeedMapper">
+
+    <resultMap id="FeedDomainRM" type="FeedDomain">
+        <result property="ifeed" column="ifeed"/>
+        <association property="cmt" column="ifeed" select="selFeedCmt"/>
+        <collection property="imgList" column="ifeed" select="selFeedImgList"/>
+    </resultMap>
+
+    <insert id="insFeed" useGeneratedKeys="true" keyProperty="ifeed">
+        INSERT INTO t_feed
+        ( location, ctnt, iuser )
+        VALUES
+        ( #{location}, #{ctnt}, ${iuser} )
+    </insert>
+
+    <select id="selFeedList" resultMap="FeedDomainRM">
+        SELECT A.ifeed, A.location, A.ctnt, A.iuser, A.regdt
+             , C.nm AS writer, C.mainimg
+             , IFNULL(E.cnt, 0) AS favCnt
+            <if test="iuserForFav > 0">
+             , CASE WHEN D.ifeed IS NULL THEN 0 ELSE 1 END AS isFav
+            </if>
+         FROM t_feed A
+        INNER JOIN t_user C
+           ON A.iuser = C.iuser
+        <if test="iuserForMyFeed > 0">
+          AND C.iuser = ${iuserForMyFeed}
+        </if>
+         LEFT JOIN (
+                SELECT ifeed, COUNT(ifeed) AS cnt
+                  FROM t_feed_fav
+                 GROUP BY ifeed
+         ) E
+           ON A.ifeed = E.ifeed
+        <if test="iuserForFav > 0">
+         LEFT JOIN t_feed_fav D
+           ON D.iuser = ${iuserForFav}
+          AND A.ifeed = D.ifeed
+        </if>
+        ORDER BY A.ifeed DESC
+        LIMIT ${startIdx}, ${limit}
+    </select>
+
+    <!-- //////////////////////////// img ///////////////////////-->
+    <insert id="insFeedImg">
+        INSERT INTO t_feed_img
+            ( ifeed, img )
+        VALUES
+            ( ${ifeed}, #{img} )
+    </insert>
+
+    <select id="selFeedImgList" resultType="FeedImgEntity">
+        SELECT img FROM t_feed_img
+        WHERE ifeed = ${ifeed}
+    </select>
+
+
+    <!-- //////////////////////////// fav ///////////////////////-->
+    <insert id="insFeedFav">
+        INSERT INTO t_feed_fav
+            ( ifeed, iuser )
+        VALUES
+            ( ${ifeed}, #{iuser} )
+    </insert>
+
+    <delete id="delFeedFav">
+        DELETE FROM t_feed_fav
+        WHERE ifeed = #{ifeed}
+          AND iuser = #{iuser}
+    </delete>
+
+    <!-- //////////////////////////// cmt ///////////////////////-->
+    <select id="selFeedCmt" resultType="FeedCmtDomain">
+        SELECT A.*, COUNT(A.icmt) - 1 AS isMore
+        FROM (
+                 SELECT A.icmt, A.cmt, A.regdt, A.ifeed
+                      , B.iuser, B.nm as writer, B.mainimg as writerimg
+                  FROM t_feed_cmt A
+                 INNER JOIN t_user B
+                    ON A.iuser = B.iuser
+                 WHERE A.ifeed = ${ifeed}
+                 ORDER BY icmt ASC
+                 LIMIT 2
+             ) A
+        GROUP BY A.ifeed
+    </select>
+
+    <select id="selFeedCmtList" resultType="FeedCmtDomain">
+        SELECT
+            A.icmt, A.cmt, A.regdt
+             , B.iuser, B.nm as writer, B.mainimg as writerimg
+        FROM t_feed_cmt A
+                 INNER JOIN t_user B
+                            ON A.iuser = B.iuser
+        WHERE A.ifeed = ${ifeed}
+        ORDER BY icmt ASC
+    </select>
+
+    <insert id="insFeedCmt">
+        INSERT INTO t_feed_cmt
+            ( ifeed, iuser, cmt )
+        VALUES
+            ( ${ifeed}, ${iuser}, #{cmt} )
+    </insert>
+
+</mapper>
